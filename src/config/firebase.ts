@@ -1,8 +1,5 @@
 import admin from 'firebase-admin';
-import dotenv from 'dotenv';
 import path from 'path';
-
-dotenv.config();
 
 const serviceAccountPath = path.resolve(process.cwd(), 'firebase-service-account.json');
 

@@ -15,6 +15,12 @@ enum Role {
   ADMIN
 }
 
+enum Status {
+  Active
+  Suspended
+  Pending
+}
+
 model User {
   id            String   @id @default(uuid())
   firebaseId    String   @unique
@@ -22,6 +28,7 @@ model User {
   name          String?
   avatar        String?
   role          Role     @default(USER)
+  status        Status   @default(Active)
   bio           String?
   pushToken     String?
   createdAt     DateTime @default(now())
@@ -29,24 +36,50 @@ model User {
 
   organizedEvents Event[] @relation("OrganizerEvents")
   participations  Participation[]
+  transactions    Transaction[]
+}
+
+enum EventStatus {
+  Live
+  Pending
+  Flagged
+  Past
+  Cancelled
+}
+
+enum RegistrationMode {
+  Internal
+  External
+}
+
+enum ParticipationMode {
+  Online
+  InPlace
 }
 
 model Event {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  date        DateTime
-  location    String
-  latitude    Float?
-  longitude   Float?
-  imageUrl    String?
-  category    String
-  organizerId String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String           @id @default(uuid())
+  title             String
+  description       String
+  date              DateTime
+  location          String
+  latitude          Float?
+  longitude         Float?
+  imageUrl          String?
+  category          String
+  status            EventStatus      @default(Live)
+  registrationMode  RegistrationMode @default(Internal)
+  participationMode ParticipationMode @default(InPlace)
+  externalLink      String?
+  flagReason        String?
+  price             Float            @default(0)
+  organizerId       String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  organizer   User     @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  organizer    User            @relation("OrganizerEvents", fields: [organizerId], references: [id])
   participants Participation[]
+  transactions Transaction[]
 }
 
 model Participation {
@@ -60,4 +93,24 @@ model Participation {
   event Event @relation(fields: [eventId], references: [id])
 
   @@unique([userId, eventId])
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  type        String   // organizer, event, warning, campaign
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  eventId     String
+  organizerId String
+  amount      Float
+  status      String   @default("Completed") // Completed, Pending, Refunded
+  createdAt   DateTime @default(now())
+
+  event     Event @relation(fields: [eventId], references: [id])
+  organizer User  @relation(fields: [organizerId], references: [id])
 }
