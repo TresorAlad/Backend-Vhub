@@ -2,13 +2,17 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import prisma from '../config/prisma';
 import { sendNotificationToAllUsers } from '../config/notifications';
+import { sendError, sendSuccess } from '../utils/http';
 
 export const createEvent = async (req: AuthRequest, res: Response) => {
   if (!req.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return sendError(res, 401, 'Unauthorized');
   }
 
   const { title, description, date, endDate, location, category, latitude, longitude, participationMode, registrationMode, externalLink, price } = req.body;
+  if (!title || !description || !date || !location || !category) {
+    return sendError(res, 422, 'Missing required event fields');
+  }
   const imageUrl = req.file ? req.file.path : null;
 
   try {
@@ -17,7 +21,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendError(res, 404, 'User not found');
     }
 
     const event = await prisma.event.create({
@@ -48,10 +52,10 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       { eventId: event.id }
     ).catch(err => console.error('Failed to send notifications:', err));
 
-    return res.status(201).json(event);
+    return sendSuccess(res, event, 'Event created', 201);
   } catch (error: any) {
     console.error('Error creating event:', error);
-    return res.status(500).json({ message: error.message || String(error) });
+    return sendError(res, 500, error.message || 'Internal server error');
   }
 };
 
@@ -70,9 +74,9 @@ export const getEvents = async (req: Request, res: Response) => {
         date: 'asc',
       },
     });
-    return res.status(200).json(events);
+    return sendSuccess(res, events);
   } catch (error) {
     console.error('Error fetching events:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };

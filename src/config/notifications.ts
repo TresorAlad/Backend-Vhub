@@ -1,9 +1,9 @@
-import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 import prisma from './prisma';
 
-const expo = new Expo();
-
 export const sendNotificationToAllUsers = async (title: string, body: string, data?: any) => {
+  const { Expo } = await import('expo-server-sdk');
+  const expo = new Expo();
+
   // Fetch all users with a push token
   const users: any[] = await (prisma.user as any).findMany({
     where: {
@@ -16,7 +16,13 @@ export const sendNotificationToAllUsers = async (title: string, body: string, da
     },
   });
 
-  const messages: ExpoPushMessage[] = [];
+  const messages: Array<{
+    to: string;
+    sound: 'default';
+    title: string;
+    body: string;
+    data?: any;
+  }> = [];
   for (const user of users) {
     if (!user.pushToken) continue;
 

@@ -4,6 +4,7 @@ import authRoutes from './routes/authRoutes';
 import eventRoutes from './routes/eventRoutes';
 import adminRoutes from './routes/adminRoutes';
 import type { CorsOptions } from 'cors';
+import { HttpError } from './utils/http';
 
 const app = express();
 
@@ -46,9 +47,20 @@ app.get('/', (req, res) => {
 });
 
 // Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled Global Error:', err);
-  res.status(500).json({ message: err.message || 'Internal Server Error' });
+  if (err instanceof HttpError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  const message = err instanceof Error ? err.message : 'Internal Server Error';
+  return res.status(500).json({
+    success: false,
+    message,
+  });
 });
 
 export default app;

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
 import { subWeeks, subMonths, startOfMonth, format } from 'date-fns';
+import { sendError, sendSuccess } from '../utils/http';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -34,7 +35,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // Mock growth for now, or calculate based on previous period
     const growth = 12.5;
 
-    res.json({
+    return sendSuccess(res, {
       totalEvents,
       activeEvents,
       pendingEvents,
@@ -49,7 +50,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };
 
@@ -67,10 +68,10 @@ export const getUserGrowth = async (req: Request, res: Response) => {
       
       months.push({ month: monthName, value: count });
     }
-    res.json(months);
+    return sendSuccess(res, months);
   } catch (error) {
     console.error('Error fetching user growth:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };
 
@@ -80,10 +81,10 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
-    res.json(activities);
+    return sendSuccess(res, activities);
   } catch (error) {
     console.error('Error fetching activities:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };
 
@@ -92,10 +93,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    res.json(users);
+    return sendSuccess(res, users);
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };
 
@@ -120,10 +121,10 @@ export const getTransactions = async (req: Request, res: Response) => {
       status: tx.status,
     }));
     
-    res.json(formatted);
+    return sendSuccess(res, formatted);
   } catch (error) {
     console.error('Error fetching transactions:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };
 
@@ -149,9 +150,9 @@ export const getRevenueByMonth = async (req: Request, res: Response) => {
       const total = transactions.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0);
       months.push({ month: monthName, value: total });
     }
-    res.json(months);
+    return sendSuccess(res, months);
   } catch (error) {
     console.error('Error fetching revenue by month:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return sendError(res, 500, 'Internal server error');
   }
 };

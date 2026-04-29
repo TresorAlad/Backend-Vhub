@@ -1,28 +1,32 @@
 import admin from 'firebase-admin';
 
 const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
+const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 
-if (serviceAccountVar) {
-  try {
-    const serviceAccount = JSON.parse(serviceAccountVar);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log('Firebase Admin initialized from environment variable');
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT env var:', error);
+const parseServiceAccount = () => {
+  if (serviceAccountVar) {
+    return JSON.parse(serviceAccountVar);
   }
-} else {
-  // Fallback for local development
-  try {
-    const serviceAccount = require('../../firebase-service-account.json');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log('Firebase Admin initialized from local JSON file');
-  } catch (error) {
-    console.error('Firebase Service Account not found (env or file). Authentication might fail.');
+  if (serviceAccountBase64) {
+    return JSON.parse(Buffer.from(serviceAccountBase64, 'base64').toString('utf-8'));
   }
+  return null;
+};
+
+try {
+  const serviceAccount = parseServiceAccount();
+  if (!serviceAccount) {
+    throw new Error(
+      'Missing Firebase Admin credentials. Set FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_BASE64.'
+    );
+  }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+  console.log('Firebase Admin initialized from environment variables');
+} catch (error) {
+  console.error('Firebase Admin initialization failed:', error);
 }
 
 export default admin;
