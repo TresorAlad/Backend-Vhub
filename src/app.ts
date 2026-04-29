@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes';
 import eventRoutes from './routes/eventRoutes';
 import adminRoutes from './routes/adminRoutes';
+import type { CorsOptions } from 'cors';
 
 const app = express();
 
@@ -12,11 +13,12 @@ const allowedOrigins = [
   'https://web-eventt.vercel.app',
   'https://web-eventtt.vercel.app',
   process.env.FRONTEND_URL,
-];
+].filter((origin): origin is string => Boolean(origin));
 
-app.use(cors({
+const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const isVercelPreview = typeof origin === 'string' && /^https:\/\/web-eventt{1,2}(-[a-z0-9-]+)?\.vercel\.app$/.test(origin);
+    if (!origin || allowedOrigins.includes(origin) || isVercelPreview) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -25,12 +27,14 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 // Handle preflight requests
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
