@@ -27,7 +27,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const eventsWithPrice = await prisma.event.findMany({
       select: { price: true },
     });
-    const totalRevenue = eventsWithPrice.reduce((acc, curr) => acc + curr.price, 0);
+    const totalRevenue = eventsWithPrice.reduce((acc: number, curr: { price: number }) => acc + curr.price, 0);
 
     const ticketSales = await prisma.participation.count();
 
@@ -111,7 +111,7 @@ export const getTransactions = async (req: Request, res: Response) => {
     });
     
     // Format for frontend
-    const formatted = transactions.map(tx => ({
+    const formatted = transactions.map((tx: any) => ({
       id: tx.id,
       event: tx.event.title,
       organizer: tx.organizer.name,
@@ -146,7 +146,7 @@ export const getRevenueByMonth = async (req: Request, res: Response) => {
         select: { amount: true },
       });
       
-      const total = transactions.reduce((acc, curr) => acc + curr.amount, 0);
+      const total = transactions.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0);
       months.push({ month: monthName, value: total });
     }
     res.json(months);

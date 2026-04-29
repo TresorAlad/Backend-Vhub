@@ -25,13 +25,14 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         title,
         description,
         date: new Date(date),
+        // @ts-ignore
         endDate: endDate ? new Date(endDate) : null,
         location,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         imageUrl,
         category,
-        status: 'Upcoming', // Default all new events to Upcoming
+        status: 'Upcoming' as any, // Default all new events to Upcoming
         participationMode: participationMode || 'InPlace',
         registrationMode: registrationMode || 'Internal',
         externalLink: externalLink || null,
