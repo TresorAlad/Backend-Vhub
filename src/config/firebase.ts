@@ -1,15 +1,28 @@
 import admin from 'firebase-admin';
-import path from 'path';
 
-const serviceAccountPath = path.resolve(process.cwd(), 'firebase-service-account.json');
+const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountPath),
-  });
-  console.log('Firebase Admin initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase Admin:', error);
+if (serviceAccountVar) {
+  try {
+    const serviceAccount = JSON.parse(serviceAccountVar);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('Firebase Admin initialized from environment variable');
+  } catch (error) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT env var:', error);
+  }
+} else {
+  // Fallback for local development
+  try {
+    const serviceAccount = require('../../firebase-service-account.json');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('Firebase Admin initialized from local JSON file');
+  } catch (error) {
+    console.error('Firebase Service Account not found (env or file). Authentication might fail.');
+  }
 }
 
 export default admin;
