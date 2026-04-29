@@ -2,9 +2,10 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "ESNext",
+    "ignoreDeprecations": "6.0",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
