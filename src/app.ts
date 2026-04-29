@@ -17,7 +17,7 @@ const allowedOrigins = [
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    const isVercelPreview = typeof origin === 'string' && /^https:\/\/web-eventt{1,2}(-[a-z0-9-]+)?\.vercel\.app$/.test(origin);
+    const isVercelPreview = typeof origin === 'string' && /^https:\/\/web-event[a-z0-9-]*\.vercel\.app$/.test(origin);
     if (!origin || allowedOrigins.includes(origin) || isVercelPreview) {
       callback(null, true);
     } else {
@@ -27,6 +27,7 @@ const corsOptions: CorsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
