@@ -41,6 +41,7 @@ model User {
 
 enum EventStatus {
   Live
+  Upcoming
   Pending
   Flagged
   Past
@@ -62,12 +63,13 @@ model Event {
   title             String
   description       String
   date              DateTime
+  endDate           DateTime?
   location          String
   latitude          Float?
   longitude         Float?
   imageUrl          String?
   category          String
-  status            EventStatus      @default(Live)
+  status            EventStatus      @default(Upcoming)
   registrationMode  RegistrationMode @default(Internal)
   participationMode ParticipationMode @default(InPlace)
   externalLink      String?

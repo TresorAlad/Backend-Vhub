@@ -17,4 +17,10 @@ app.get('/', (req, res) => {
   res.send('EventHub API is running');
 });
 
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Global Error:', err);
+  res.status(500).json({ message: err.message || 'Internal Server Error' });
+});
+
 export default app;

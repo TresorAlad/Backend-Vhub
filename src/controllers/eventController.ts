@@ -8,7 +8,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  const { title, description, date, location, category, latitude, longitude } = req.body;
+  const { title, description, date, endDate, location, category, latitude, longitude, participationMode, registrationMode, externalLink, price } = req.body;
   const imageUrl = req.file ? req.file.path : null;
 
   try {
@@ -25,11 +25,17 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         title,
         description,
         date: new Date(date),
+        endDate: endDate ? new Date(endDate) : null,
         location,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         imageUrl,
         category,
+        status: 'Upcoming', // Default all new events to Upcoming
+        participationMode: participationMode || 'InPlace',
+        registrationMode: registrationMode || 'Internal',
+        externalLink: externalLink || null,
+        price: price ? parseFloat(price) : 0,
         organizerId: user.id,
       },
     });
@@ -42,9 +48,9 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
     ).catch(err => console.error('Failed to send notifications:', err));
 
     return res.status(201).json(event);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating event:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: error.message || String(error) });
   }
 };
 
