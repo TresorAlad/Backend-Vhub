@@ -14,22 +14,45 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
   const desiredRole = (req.body?.desiredRole as AppRole | undefined) ?? undefined;
 
   try {
-    let user = await prisma.user.findUnique({
-      where: { firebaseId: uid },
-    });
+    // Use an atomic upsert to avoid race conditions (multiple sync calls on first login)
+    // that could otherwise create a duplicate and throw a unique constraint error.
+    const roleToCreate: AppRole = desiredRole === 'ORGANIZER' ? 'ORGANIZER' : 'USER';
 
-    if (!user) {
-      const roleToCreate: AppRole = desiredRole === 'ORGANIZER' ? 'ORGANIZER' : 'USER';
-      user = await prisma.user.create({
-        data: {
+    const updateData: Record<string, unknown> = {};
+    if (typeof email === 'string' && email.length > 0) updateData.email = email;
+    if (typeof name === 'string' && name.length > 0) updateData.name = name;
+    if (typeof picture === 'string' && picture.length > 0) updateData.avatar = picture;
+
+    // Some databases/enums may not include "ORGANIZER" yet. If creation fails due to role value,
+    // we fallback to USER to keep mobile sign-in functional, and role upgrade can be handled later.
+    const user = await prisma.user
+      .upsert({
+        where: { firebaseId: uid },
+        create: {
           firebaseId: uid,
           email: email || '',
           name: name || '',
           avatar: picture || '',
           role: roleToCreate,
         },
+        // Do not auto-upgrade roles here; only initial creation uses desiredRole.
+        update: updateData,
+      })
+      .catch(async (err: unknown) => {
+        if (roleToCreate !== 'ORGANIZER') throw err;
+        console.warn('Upsert with ORGANIZER role failed, retrying with USER role.');
+        return prisma.user.upsert({
+          where: { firebaseId: uid },
+          create: {
+            firebaseId: uid,
+            email: email || '',
+            name: name || '',
+            avatar: picture || '',
+            role: 'USER',
+          },
+          update: updateData,
+        });
       });
-    }
 
     return sendSuccess(res, user);
   } catch (error) {
