@@ -4,12 +4,23 @@ const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
 const googleApplicationCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
-function parseServiceAccountFromBase64() {
+function tryParseServiceAccount() {
   try {
-    if (serviceAccountBase64) {
-      return JSON.parse(Buffer.from(serviceAccountBase64, 'base64').toString('utf-8'));
+    const raw = (serviceAccountBase64 ?? '').trim();
+    if (!raw) return null;
+
+    // 1) Normal path: base64(JSON)
+    try {
+      const decoded = Buffer.from(raw, 'base64').toString('utf-8').trim();
+      if (decoded.startsWith('{')) return JSON.parse(decoded);
+    } catch {
+      // ignore and fallback
     }
-    return null;
+
+    // 2) Fallback: sometimes the env is pasted as raw JSON instead of base64
+    if (raw.startsWith('{')) return JSON.parse(raw);
+
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_BASE64 is neither base64(JSON) nor JSON.');
   } catch (error) {
     console.error('Invalid FIREBASE_SERVICE_ACCOUNT_BASE64 format.', error);
     return null;
@@ -17,7 +28,7 @@ function parseServiceAccountFromBase64() {
 }
 
 try {
-  const serviceAccount = parseServiceAccountFromBase64();
+  const serviceAccount = tryParseServiceAccount();
 
   if (serviceAccount) {
     admin.initializeApp({

@@ -3,12 +3,15 @@ import { AuthRequest } from '../middlewares/auth';
 import prisma from '../config/prisma';
 import { sendError, sendSuccess } from '../utils/http';
 
+type AppRole = 'USER' | 'ORGANIZER' | 'ADMIN';
+
 export const syncUser = async (req: AuthRequest, res: Response) => {
   if (!req.user) {
     return sendError(res, 401, 'User not found in request');
   }
 
   const { uid, email, name, picture } = req.user;
+  const desiredRole = (req.body?.desiredRole as AppRole | undefined) ?? undefined;
 
   try {
     let user = await prisma.user.findUnique({
@@ -16,13 +19,14 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) {
+      const roleToCreate: AppRole = desiredRole === 'ORGANIZER' ? 'ORGANIZER' : 'USER';
       user = await prisma.user.create({
         data: {
           firebaseId: uid,
           email: email || '',
           name: name || '',
           avatar: picture || '',
-          role: 'USER', // Default role
+          role: roleToCreate,
         },
       });
     }
