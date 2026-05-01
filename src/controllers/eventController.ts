@@ -156,7 +156,7 @@ export const getEventStats = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: {
         participants: {
-          include: { user: { select: { id: true, name: true, email: true, profileImage: true } } }
+          include: { user: { select: { id: true, name: true, email: true, avatar: true } } }
         },
         favorites: true,
       }
@@ -171,18 +171,18 @@ export const getEventStats = async (req: AuthRequest, res: Response) => {
       registrations: event.participants.length,
       favorites: event.favorites.length,
       shares: 0,
-      participants: event.participants.map(p => ({
-        id: p.user.id,
-        name: p.user.name,
-        email: p.user.email,
-        profileImage: p.user.profileImage,
+      participants: (event.participants || []).map(p => ({
+        id: p.user?.id || 'Inconnu',
+        name: p.user?.name || 'Utilisateur',
+        email: p.user?.email || '',
+        profileImage: p.user?.avatar || '',
         registeredAt: p.createdAt
       }))
     };
 
     return sendSuccess(res, stats);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching event stats:', error);
-    return sendError(res, 500, 'Internal server error');
+    return sendError(res, 500, error.message || 'Internal server error');
   }
 };
