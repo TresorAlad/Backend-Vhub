@@ -5,7 +5,7 @@ import { sendError, sendSuccess } from '../utils/http';
 
 export const registerToEvent = async (req: AuthRequest, res: Response) => {
   if (!req.user) return sendError(res, 401, 'Unauthorized');
-  const eventId = req.params.eventId;
+  const eventId = req.params.eventId as string;
   if (!eventId) return sendError(res, 422, 'eventId is required');
 
   try {
@@ -36,7 +36,7 @@ export const registerToEvent = async (req: AuthRequest, res: Response) => {
 
 export const unregisterFromEvent = async (req: AuthRequest, res: Response) => {
   if (!req.user) return sendError(res, 401, 'Unauthorized');
-  const eventId = req.params.eventId;
+  const eventId = req.params.eventId as string;
   if (!eventId) return sendError(res, 422, 'eventId is required');
 
   try {
@@ -58,7 +58,7 @@ export const unregisterFromEvent = async (req: AuthRequest, res: Response) => {
 
 export const toggleFavorite = async (req: AuthRequest, res: Response) => {
   if (!req.user) return sendError(res, 401, 'Unauthorized');
-  const eventId = req.params.eventId;
+  const eventId = req.params.eventId as string;
   if (!eventId) return sendError(res, 422, 'eventId is required');
 
   try {
@@ -85,7 +85,7 @@ export const toggleFavorite = async (req: AuthRequest, res: Response) => {
 
 export const toggleFollowOrganizer = async (req: AuthRequest, res: Response) => {
   if (!req.user) return sendError(res, 401, 'Unauthorized');
-  const organizerId = req.params.organizerId;
+  const organizerId = req.params.organizerId as string;
   if (!organizerId) return sendError(res, 422, 'organizerId is required');
 
   try {
@@ -113,7 +113,7 @@ export const toggleFollowOrganizer = async (req: AuthRequest, res: Response) => 
 
 export const getEventInteractions = async (req: AuthRequest, res: Response) => {
   if (!req.user) return sendError(res, 401, 'Unauthorized');
-  const eventId = req.params.eventId;
+  const eventId = req.params.eventId as string;
   if (!eventId) return sendError(res, 422, 'eventId is required');
 
   try {
