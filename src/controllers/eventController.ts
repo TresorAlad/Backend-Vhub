@@ -80,3 +80,109 @@ export const getEvents = async (req: Request, res: Response) => {
     return sendError(res, 500, 'Internal server error');
   }
 };
+
+export const deleteEvent = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 401, 'Unauthorized');
+  const id = req.params.id as string;
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseId: req.user.uid } });
+    if (!user) return sendError(res, 404, 'User not found');
+
+    const event = await prisma.event.findUnique({ where: { id } });
+    if (!event) return sendError(res, 404, 'Event not found');
+
+    if (event.organizerId !== user.id && user.role !== 'ADMIN') {
+      return sendError(res, 403, 'Forbidden to delete this event');
+    }
+
+    await prisma.event.delete({ where: { id } });
+    return sendSuccess(res, null, 'Event deleted successfully');
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};
+
+export const updateEvent = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 401, 'Unauthorized');
+  const id = req.params.id as string;
+  const { title, description, date, endDate, location, category, latitude, longitude, participationMode, registrationMode, externalLink, price } = req.body;
+  const imageUrl = req.file ? req.file.path : undefined;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseId: req.user.uid } });
+    if (!user) return sendError(res, 404, 'User not found');
+
+    const event = await prisma.event.findUnique({ where: { id } });
+    if (!event) return sendError(res, 404, 'Event not found');
+
+    if (event.organizerId !== user.id && user.role !== 'ADMIN') {
+      return sendError(res, 403, 'Forbidden to update this event');
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: {
+        ...(title && { title }),
+        ...(description && { description }),
+        ...(date && { date: new Date(date) }),
+        ...(endDate && { endDate: new Date(endDate) }),
+        ...(location && { location }),
+        ...(category && { category }),
+        ...(latitude && { latitude: parseFloat(latitude) }),
+        ...(longitude && { longitude: parseFloat(longitude) }),
+        ...(participationMode && { participationMode }),
+        ...(registrationMode && { registrationMode }),
+        ...(externalLink !== undefined && { externalLink }),
+        ...(price && { price: parseFloat(price) }),
+        ...(imageUrl && { imageUrl }),
+      },
+    });
+    return sendSuccess(res, updatedEvent, 'Event updated successfully');
+  } catch (error) {
+    console.error('Error updating event:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};
+
+export const getEventStats = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 401, 'Unauthorized');
+  const id = req.params.id as string;
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseId: req.user.uid } });
+    if (!user) return sendError(res, 404, 'User not found');
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        participants: {
+          include: { user: { select: { id: true, name: true, email: true, profileImage: true } } }
+        },
+        favorites: true,
+      }
+    });
+    if (!event) return sendError(res, 404, 'Event not found');
+
+    if (event.organizerId !== user.id && user.role !== 'ADMIN') {
+      return sendError(res, 403, 'Forbidden to view stats for this event');
+    }
+
+    const stats = {
+      registrations: event.participants.length,
+      favorites: event.favorites.length,
+      shares: 0,
+      participants: event.participants.map(p => ({
+        id: p.user.id,
+        name: p.user.name,
+        email: p.user.email,
+        profileImage: p.user.profileImage,
+        registeredAt: p.createdAt
+      }))
+    };
+
+    return sendSuccess(res, stats);
+  } catch (error) {
+    console.error('Error fetching event stats:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};

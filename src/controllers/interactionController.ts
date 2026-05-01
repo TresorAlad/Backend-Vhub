@@ -13,11 +13,13 @@ export const registerToEvent = async (req: AuthRequest, res: Response) => {
     if (!user) return sendError(res, 404, 'User not found');
 
     // Ensure event exists
-    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, date: true, status: true } });
+    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, date: true, endDate: true, status: true } });
     if (!event) return sendError(res, 404, 'Event not found');
 
     const now = new Date();
-    if (event.date < now || String(event.status).toLowerCase() === 'past') {
+    // Use endDate if available, otherwise assume 4 hours duration
+    const end = event.endDate ? new Date(event.endDate) : new Date(event.date.getTime() + 4 * 60 * 60 * 1000);
+    if (end < now || String(event.status).toLowerCase() === 'past') {
       return sendError(res, 409, 'Event is expired');
     }
 
@@ -120,7 +122,7 @@ export const getEventInteractions = async (req: AuthRequest, res: Response) => {
     const me = await prisma.user.findUnique({ where: { firebaseId: req.user.uid }, select: { id: true } });
     if (!me) return sendError(res, 404, 'User not found');
 
-    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { organizerId: true, date: true, status: true } });
+    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { organizerId: true, date: true, endDate: true, status: true } });
     if (!event) return sendError(res, 404, 'Event not found');
 
     const [participation, favorite, follow] = await Promise.all([
@@ -140,7 +142,8 @@ export const getEventInteractions = async (req: AuthRequest, res: Response) => {
           }),
     ]);
 
-    const expired = event.date < new Date() || String(event.status).toLowerCase() === 'past';
+    const end = event.endDate ? new Date(event.endDate) : new Date(event.date.getTime() + 4 * 60 * 60 * 1000);
+    const expired = end < new Date() || String(event.status).toLowerCase() === 'past';
     return sendSuccess(res, {
       registered: Boolean(participation),
       favorited: Boolean(favorite),
