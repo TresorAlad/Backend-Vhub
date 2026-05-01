@@ -75,6 +75,11 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { firebaseId: req.user.uid },
+      include: {
+        _count: {
+          select: { favorites: true, following: true, followers: true, organizedEvents: true }
+        }
+      }
     });
 
     if (!user) {
