@@ -4,6 +4,7 @@ import authRoutes from './routes/authRoutes';
 import eventRoutes from './routes/eventRoutes';
 import adminRoutes from './routes/adminRoutes';
 import interactionRoutes from './routes/interactionRoutes';
+import organizerRequestRoutes from './routes/organizerRequestRoutes';
 import type { CorsOptions } from 'cors';
 import { HttpError } from './utils/http';
 
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/interactions', interactionRoutes);
+app.use('/api/organizer-requests', organizerRequestRoutes);
 
 app.get('/', (req, res) => {
   res.send('EventHub API is running');

@@ -41,6 +41,33 @@ model User {
   favorites       Favorite[]
   following       Follow[] @relation("UserFollows")
   followers       Follow[] @relation("OrganizerFollowers")
+  organizerRequests OrganizerRequest[]
+}
+
+enum OrganizerRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model OrganizerRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  status        OrganizerRequestStatus @default(PENDING)
+  communityName String
+  description   String
+  phone         String
+  website       String?
+  proofUrl      String?
+  adminNote     String?
+  decidedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }
 
 enum EventStatus {
