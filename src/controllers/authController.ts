@@ -60,6 +60,26 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
         });
       });
 
+    // Backfill organizer info if missing on User but exists on a request
+    if (user.role === 'ORGANIZER' && (!user.phone || !user.communityDescription)) {
+      const lastReq = await prisma.organizerRequest.findFirst({
+        where: { userId: user.id, status: 'APPROVED' as any },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (lastReq) {
+        const updated = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            phone: user.phone || lastReq.phone,
+            website: user.website || lastReq.website,
+            proofUrl: user.proofUrl || lastReq.proofUrl,
+            communityDescription: user.communityDescription || lastReq.description,
+          },
+        });
+        return sendSuccess(res, updated);
+      }
+    }
+
     return sendSuccess(res, user);
   } catch (error) {
     console.error('Error syncing user:', error);
@@ -119,8 +139,11 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     return sendError(res, 401, 'User not found');
   }
 
-  const { name, avatar, bio, organizationName, email } = req.body;
-
+  const { 
+    name, avatar, bio, organizationName, email,
+    communityDescription, phone, website, proofUrl 
+  } = req.body;
+  
   try {
     const updatedUser = await prisma.user.update({
       where: { firebaseId: req.user.uid },
@@ -130,6 +153,10 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         organizationName,
         avatar,
         bio,
+        communityDescription,
+        phone,
+        website,
+        proofUrl,
       },
     });
     return sendSuccess(res, updatedUser);

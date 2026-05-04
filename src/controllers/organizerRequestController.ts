@@ -144,6 +144,10 @@ export const approveOrganizerRequest = async (req: AuthRequest, res: Response) =
         data: {
           role: 'ORGANIZER' as any,
           organizationName: reqItem.communityName,
+          communityDescription: reqItem.description,
+          phone: reqItem.phone,
+          website: reqItem.website,
+          proofUrl: reqItem.proofUrl,
         },
       });
 
