@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/prisma';
 import { subWeeks, subMonths, startOfMonth, format } from 'date-fns';
 import { sendError, sendSuccess } from '../utils/http';
+import { sendNotificationToAllUsers } from '../config/notifications';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -153,6 +154,55 @@ export const getRevenueByMonth = async (req: Request, res: Response) => {
     return sendSuccess(res, months);
   } catch (error) {
     console.error('Error fetching revenue by month:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};
+
+export const approveEvent = async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  if (!id) return sendError(res, 422, 'Event id is required');
+
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: { organizer: { select: { name: true } } },
+    });
+    if (!event) return sendError(res, 404, 'Event not found');
+
+    const updated = await prisma.event.update({
+      where: { id },
+      data: { status: 'Live' as any },
+    });
+
+    // Notify everyone that a new event is available
+    await sendNotificationToAllUsers(
+      'Nouvel événement',
+      `${updated.title} est maintenant disponible.`,
+      { eventId: updated.id }
+    ).catch((err) => console.error('Failed to send FCM notifications:', err));
+
+    return sendSuccess(res, updated, 'Event approved');
+  } catch (error) {
+    console.error('approveEvent error:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};
+export const approveOrganizerRole = async (req: Request, res: Response) => {
+  const userId = req.params.userId as string;
+  if (!userId) return sendError(res, 422, 'User id is required');
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return sendError(res, 404, 'User not found');
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { role: 'ORGANIZER' },
+    });
+
+    return sendSuccess(res, updated, 'User promoted to ORGANIZER');
+  } catch (error) {
+    console.error('approveOrganizerRole error:', error);
     return sendError(res, 500, 'Internal server error');
   }
 };

@@ -158,3 +158,29 @@ export const updateAvatar = async (req: AuthRequest, res: Response) => {
     return sendError(res, 500, 'Internal server error');
   }
 };
+export const requestOrganizerRole = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 401, 'Unauthorized');
+
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseId: req.user.uid } });
+    if (!user) return sendError(res, 404, 'User not found');
+
+    if (user.role === 'ORGANIZER' || user.role === 'ADMIN') {
+      return sendError(res, 400, 'User is already an organizer or admin');
+    }
+
+    // Create an activity for the admin to see
+    await prisma.activity.create({
+      data: {
+        type: 'organizer_request',
+        title: 'Nouvelle demande d\'organisateur',
+        description: `L'utilisateur ${user.name || user.email} souhaite devenir organisateur. (ID: ${user.id})`,
+      },
+    });
+
+    return sendSuccess(res, null, 'Demande envoyée avec succès');
+  } catch (error) {
+    console.error('Error requesting organizer role:', error);
+    return sendError(res, 500, 'Internal server error');
+  }
+};

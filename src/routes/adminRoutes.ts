@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDashboardStats, getUserGrowth, getRecentActivity, getAllUsers, getTransactions, getRevenueByMonth } from '../controllers/adminController';
+import { getDashboardStats, getUserGrowth, getRecentActivity, getAllUsers, getTransactions, getRevenueByMonth, approveEvent, approveOrganizerRole } from '../controllers/adminController';
 import { authenticate } from '../middlewares/auth';
 import { requireRole } from '../middlewares/requireRole';
 
@@ -11,5 +11,7 @@ router.get('/activity', authenticate, requireRole('ADMIN'), getRecentActivity);
 router.get('/users', authenticate, requireRole('ADMIN'), getAllUsers);
 router.get('/transactions', authenticate, requireRole('ADMIN'), getTransactions);
 router.get('/revenue-growth', authenticate, requireRole('ADMIN'), getRevenueByMonth);
+router.post('/events/:id/approve', authenticate, requireRole('ADMIN'), approveEvent);
+router.post('/users/:userId/approve-organizer', authenticate, requireRole('ADMIN'), approveOrganizerRole);
 
 export default router;

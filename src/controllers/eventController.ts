@@ -1,8 +1,22 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import prisma from '../config/prisma';
-import { sendNotificationToAllUsers } from '../config/notifications';
 import { sendError, sendSuccess } from '../utils/http';
+
+type EventStatus = 'Live' | 'Upcoming' | 'Pending' | 'Flagged' | 'Past' | 'Cancelled';
+
+const computeEventStatus = (ev: { date: Date; endDate: Date | null; status: EventStatus }): EventStatus => {
+  // On ne touche pas aux événements non-validés ou annulés
+  if (ev.status === 'Pending' || ev.status === 'Flagged' || ev.status === 'Cancelled') return ev.status;
+
+  const now = new Date();
+  const start = ev.date ? new Date(ev.date) : now;
+  const end = ev.endDate ? new Date(ev.endDate) : new Date(start.getTime() + 4 * 60 * 60 * 1000);
+
+  if (now >= end) return 'Past';
+  if (now >= start) return 'Live';
+  return 'Upcoming';
+};
 
 export const createEvent = async (req: AuthRequest, res: Response) => {
   if (!req.user) {
@@ -36,7 +50,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         longitude: longitude ? parseFloat(longitude) : null,
         imageUrl,
         category,
-        status: 'Upcoming' as any, // Default all new events to Upcoming
+        status: (user.role === 'ORGANIZER' || user.role === 'ADMIN') ? 'Upcoming' : 'Pending',
         participationMode: participationMode || 'InPlace',
         registrationMode: registrationMode || 'Internal',
         externalLink: externalLink || null,
@@ -44,13 +58,6 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         organizerId: user.id,
       },
     });
-
-    // Send notifications to all users
-    await sendNotificationToAllUsers(
-      'New Event!',
-      `Organizer ${user.name} just posted a new event: ${event.title}`,
-      { eventId: event.id }
-    ).catch(err => console.error('Failed to send notifications:', err));
 
     return sendSuccess(res, event, 'Event created', 201);
   } catch (error: any) {
@@ -74,6 +81,32 @@ export const getEvents = async (req: Request, res: Response) => {
         date: 'asc',
       },
     });
+
+    // Best-effort: garder le status en phase avec les dates (UTC) à chaque lecture.
+    // Ça évite d'avoir besoin d'un cron pour une première version.
+    const updates = events
+      .map((ev) => {
+        const next = computeEventStatus({
+          date: ev.date as any,
+          endDate: (ev.endDate as any) ?? null,
+          status: ev.status as any,
+        });
+        if (next === (ev.status as any)) return null;
+        return prisma.event.update({ where: { id: ev.id }, data: { status: next as any } });
+      })
+      .filter(Boolean) as Array<ReturnType<typeof prisma.event.update>>;
+
+    if (updates.length > 0) {
+      Promise.allSettled(updates).catch(() => undefined);
+      // On renvoie tout de suite une version cohérente au client (sans attendre la DB)
+      for (const ev of events as any[]) {
+        ev.status = computeEventStatus({
+          date: ev.date,
+          endDate: ev.endDate ?? null,
+          status: ev.status,
+        });
+      }
+    }
     return sendSuccess(res, events);
   } catch (error) {
     console.error('Error fetching events:', error);
